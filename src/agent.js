@@ -492,11 +492,14 @@ export async function startAgent(settings, options = {}) {
             perStepFrames: withImages,
             whisperPlayers: !team,
         }).filter(t => !team || !['post_chat', 'read_chat'].includes(t.name));
-        let workspaceTools = await createWorkspaceTools({
-            privateRoot: path.join(root, 'workspace'),
-            sharedRoot: team ? path.join(root, 'workspace-unshared') : c.sharedRoot,
-            onWait: until => runner.requestWait(until),
-        });
+        let workspaceTools = [];
+        if (process.platform === 'linux')
+            workspaceTools = await createWorkspaceTools({
+                privateRoot: path.join(root, 'workspace'),
+                sharedRoot: team ? path.join(root, 'workspace-unshared') : c.sharedRoot,
+                onWait: until => runner.requestWait(until),
+            });
+        else console.warn(`[${name}] host workspace tools are disabled on ${process.platform}; use sandbox tools instead.`);
         if (team)
             workspaceTools = workspaceTools.map(t => {
                 if (!t.parameters?.properties?.scope) return t;
