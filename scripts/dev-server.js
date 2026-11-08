@@ -104,7 +104,11 @@ writeFileSync(
 console.log(`Starting Paper ${version} on port ${values.port} (offline mode). Type "stop" to shut down.`);
 if (worldExists)
     console.log(`Using the existing world in ${dir}/world. Delete ${dir}/world* to generate a new one from the seed.`);
-const child = spawn('java', [`-Xmx${values.memory}`, '-jar', jar, '--nogui'], {
+const javaFromHome = process.env.JAVA_HOME
+    ? path.join(process.env.JAVA_HOME, 'bin', process.platform === 'win32' ? 'java.exe' : 'java')
+    : null;
+const javaExecutable = javaFromHome && existsSync(javaFromHome) ? javaFromHome : 'java';
+const child = spawn(javaExecutable, [`-Xmx${values.memory}`, '-jar', jar, '--nogui'], {
     cwd: dir,
     stdio: ['pipe', 'pipe', 'inherit'],
 });

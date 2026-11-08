@@ -320,7 +320,10 @@ async function runTeam(file, cwd) {
     }
     let server = null;
     let sharedRoot = '/shared';
-    const socketPath = path.join(stateDir, 'shared-machine.sock');
+    const socketPath =
+        process.platform === 'win32'
+            ? `\\\\.\\pipe\\minecraft-agent-harness-${process.pid}`
+            : path.join(stateDir, 'shared-machine.sock');
     if (sharedMachine === 'local') {
         const { startLocalSharedMachine } = await import('./shared-machine/local.js');
         sharedRoot = path.join(stateDir, 'shared-machine');

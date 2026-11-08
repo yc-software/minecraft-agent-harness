@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Command Center</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    :root { --ink:#e7edf0; --muted:#87939a; --bg:#111719; --panel:#182124; --line:#2a373b; --teal:#66d7c5; --orange:#ff9d67; --red:#ff6e6e; --yellow:#f1ce7a; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:radial-gradient(circle at 85% 0%, #233d3b 0, transparent 34%), var(--bg); font-family:'Space Grotesk', sans-serif; min-height:100vh; }
+    header { max-width:1440px; margin:auto; padding:28px 32px 18px; display:flex; align-items:end; justify-content:space-between; gap:20px; }
+    .kicker { color:var(--teal); font:500 11px 'DM Mono', monospace; letter-spacing:.16em; text-transform:uppercase; }
+    h1 { font-size:clamp(28px,4vw,48px); line-height:1; margin:9px 0 0; letter-spacing:0; }
+    .connection { color:var(--muted); font:12px 'DM Mono', monospace; display:flex; align-items:center; gap:8px; }
+    .dot { width:8px; height:8px; border-radius:50%; background:var(--red); display:inline-block; } .dot.live { background:var(--teal); box-shadow:0 0 14px var(--teal); }
+    main { max-width:1440px; margin:auto; padding:0 32px 38px; }
+    .toolbar { border-block:1px solid var(--line); padding:14px 0; display:flex; align-items:center; gap:10px; }
+    select, textarea, button { font:inherit; }
+    select { background:var(--panel); border:1px solid var(--line); color:var(--ink); padding:10px 12px; min-width:190px; }
+    .updated { margin-left:auto; color:var(--muted); font:11px 'DM Mono',monospace; }
+    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:14px; margin-top:14px; }
+    .panel { background:color-mix(in srgb, var(--panel) 90%, transparent); border:1px solid var(--line); padding:18px; min-width:0; }
+    .hero { grid-column:span 8; min-height:244px; display:flex; flex-direction:column; justify-content:space-between; }
+    .side { grid-column:span 4; }
+    .wide { grid-column:span 7; } .narrow { grid-column:span 5; }
+    .label { color:var(--muted); font:11px 'DM Mono', monospace; text-transform:uppercase; letter-spacing:.12em; }
+    .status-line { display:flex; justify-content:space-between; align-items:start; gap:20px; }
+    .status { font-size:30px; text-transform:capitalize; margin-top:7px; }
+    .health { display:flex; align-items:end; gap:12px; }
+    .health strong { font-size:48px; font-weight:500; line-height:.9; }
+    .health small { color:var(--muted); font:12px 'DM Mono',monospace; padding-bottom:4px; }
+    .meter { height:7px; background:#0d1011; margin-top:18px; overflow:hidden; } .meter i { display:block; height:100%; background:var(--teal); transition:width .4s ease; }
+    .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:24px; }
+    .metric { border-left:2px solid var(--line); padding-left:10px; } .metric b { display:block; font-size:20px; margin-top:5px; font-weight:500; }
+    .position { color:var(--orange); font:14px 'DM Mono',monospace; margin-top:8px; }
+    .inventory { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:7px; margin-top:15px; max-height:190px; overflow:auto; }
+    .item { background:#202d30; padding:10px; display:flex; justify-content:space-between; gap:8px; font:12px 'DM Mono',monospace; } .item span:last-child { color:var(--orange); }
+    .events { margin-top:13px; max-height:280px; overflow:auto; } .event { border-top:1px solid var(--line); padding:10px 0; display:grid; grid-template-columns:145px 90px 1fr; gap:10px; font-size:12px; } .event time,.event .kind { color:var(--muted); font:11px 'DM Mono',monospace; } .event .kind { color:var(--teal); text-transform:uppercase; } .event p { margin:0; color:#c3ced1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    textarea { width:100%; min-height:100px; resize:vertical; background:#101617; color:var(--ink); border:1px solid var(--line); padding:12px; margin-top:14px; outline:none; } textarea:focus { border-color:var(--teal); }
+    .send-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:10px; } button { border:0; padding:11px 16px; background:var(--teal); color:#10201f; cursor:pointer; font-weight:600; } button:hover { background:#8be8d9; } button:disabled { opacity:.5; cursor:wait; }
+    .hint { color:var(--muted); font:11px 'DM Mono',monospace; } .empty { color:var(--muted); margin-top:15px; font-size:13px; }
+    @media (max-width:900px) { header { padding-inline:18px; } main { padding-inline:18px; } .hero,.side,.wide,.narrow { grid-column:1/-1; } .event { grid-template-columns:105px 72px 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div><div class="kicker">Minecraft agent telemetry</div><h1>Command center</h1></div>
+    <div class="connection"><i class="dot" id="dot"></i><span id="connection">Connecting</span></div>
+  </header>
+  <main>
+    <div class="toolbar"><label class="label" for="agent">Watching</label><select id="agent"><option>Waiting for agents...</option></select><span class="updated" id="updated">No signal</span></div>
+    <section class="grid">
+      <article class="panel hero"><div class="status-line"><div><div class="label">Agent health</div><div class="status" id="status">Offline</div></div><div class="health"><strong id="health">--</strong><small>HEARTS</small></div></div><div><div class="meter"><i id="healthbar" style="width:0%"></i></div><div class="metrics"><div class="metric"><div class="label">Food</div><b id="food">--</b></div><div class="metric"><div class="label">Game mode</div><b id="mode">--</b></div><div class="metric"><div class="label">Position</div><div class="position" id="position">--</div></div></div></div></article>
+      <article class="panel side"><div class="label">Objective</div><p id="objective">Select an agent to inspect its objective.</p><div class="label" style="margin-top:28px">Last signal</div><p id="lastSignal" class="position">--</p></article>
+      <article class="panel wide"><div class="label">Inventory</div><div class="inventory" id="inventory"><div class="empty">No inventory observation yet.</div></div></article>
+      <article class="panel narrow"><div class="label">Send a prompt</div><textarea id="prompt" maxlength="2000" placeholder="Tell the agent what to do next..."></textarea><div class="send-row"><span class="hint" id="sendStatus">DM from Jayyy69</span><button id="send">Send prompt</button></div></article>
+      <article class="panel" style="grid-column:1/-1"><div class="label">Activity log</div><div class="events" id="events"><div class="empty">No telemetry yet.</div></div></article>
+    </section>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    let selected = '';
+    const formatTime = value => value ? new Date(value).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '--';
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
+    async function get(url, options) { const response = await fetch(url, options); if (!response.ok) throw new Error((await response.json()).error || response.statusText); return response.json(); }
+    function drawAgents(agents) { const select = $('agent'); const current = selected; select.innerHTML = agents.length ? agents.map(agent => `<option value="${esc(agent.name)}">${esc(agent.name)}</option>`).join('') : '<option value="">No agents found</option>'; selected = agents.some(agent => agent.name === current) ? current : agents[0]?.name || ''; select.value = selected; }
+    function draw(data) {
+      $('status').textContent = data.status || 'unknown'; $('health').textContent = data.health == null ? '--' : Number(data.health).toFixed(1); $('food').textContent = data.food == null ? '--' : `${Number(data.food).toFixed(0)} / 20`; $('mode').textContent = data.gameMode || '--';
+      const position = data.position; $('position').textContent = position ? `${Number(position.x).toFixed(1)}, ${Number(position.y).toFixed(1)}, ${Number(position.z).toFixed(1)}` : '--'; $('healthbar').style.width = `${Math.max(0, Math.min(100, Number(data.health ?? 0) * 5))}%`; $('objective').textContent = data.objective || 'No objective recorded.'; $('lastSignal').textContent = data.lastMessage || data.lastEvent || '--'; $('updated').textContent = data.updatedAt ? `Updated ${formatTime(data.updatedAt)}` : 'No signal';
+      const inventory = data.inventory || []; $('inventory').innerHTML = inventory.length ? inventory.map(item => `<div class="item"><span>${esc(item.name)}</span><span>${esc(item.count)}</span></div>`).join('') : '<div class="empty">No inventory observation yet.</div>';
+      $('events').innerHTML = data.events?.length ? data.events.map(event => `<div class="event"><time>${formatTime(event.time)}</time><span class="kind">${esc(event.event)}</span><p>${esc(event.message || event.result || event.errorMessage || event.tool || (event.position ? `at ${event.position.x}, ${event.position.y}, ${event.position.z}` : ''))}</p></div>`).join('') : '<div class="empty">No telemetry yet.</div>';
+    }
+    async function refresh() { try { const list = await get('/api/agents'); drawAgents(list.agents); if (!selected) return; draw(await get(`/api/agents/${encodeURIComponent(selected)}?limit=100`)); $('dot').classList.add('live'); $('connection').textContent = 'Live · auto-refresh 2s'; } catch (error) { $('dot').classList.remove('live'); $('connection').textContent = error.message; } }
+    $('agent').addEventListener('change', event => { selected = event.target.value; refresh(); });
+    $('send').addEventListener('click', async () => { const prompt = $('prompt').value.trim(); if (!prompt || !selected) return; $('send').disabled = true; $('sendStatus').textContent = 'Sending...'; try { await get(`/api/agents/${encodeURIComponent(selected)}/prompt`, { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ prompt }) }); $('prompt').value = ''; $('sendStatus').textContent = 'Delivered to mailbox'; setTimeout(() => $('sendStatus').textContent = 'DM from Jayyy69', 2400); } catch (error) { $('sendStatus').textContent = error.message; } finally { $('send').disabled = false; } });
+    $('prompt').addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') $('send').click(); });
+    refresh(); setInterval(refresh, 2000);
+  </script>
+</body>
+</html>
